@@ -12,3 +12,10 @@ int main()
     printf("github learning");
     return 0;
 }
+ 
+int estuary()
+{
+    estuary_init();
+    estuary_data_process();
+    estuary_free();
+}
