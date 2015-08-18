@@ -1,0 +1,20 @@
+##How to install hexo 
+1.Install nvm according to the following instruct:
+
+	wget -qO- https://raw.github.com/creationix/nvm/master/install.sh | sh
+	nvm install 0.10
+
+after that please reboot your terminal.
+2.Install hexo 
+
+	npm install hexo@2.8.3 -g
+	npm install hexo-renderer-marked@0.1
+	npm install hexo-renderer-stylus@0.1
+
+after that you can use it.
+3.how to use it simplely
+
+	hexo init hexo
+	hexo g
+	hexo s
+
