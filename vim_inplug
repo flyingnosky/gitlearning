@@ -1,0 +1,46 @@
+vim如何让函数高亮
+在~/.vim/syntax/c.vim中添加如下代码：
+"highlight Functions
+syn match cFunctions "\<[a-zA-Z_][a-zA-Z_0-9]*\>[^()]*)("me=e-2
+syn match cFunctions "\<[a-zA-Z_][a-zA-Z_0-9]*\>\s*("me=e-1
+hi cFunctions guifg=#7fd02e cterm=bold ctermfg=yellow
+syn match cClass "\<[a-zA-Z_][a-zA-Z_0-9]*\>::"me=e-2
+hi cClass guifg=#7fd02e cterm=bold ctermfg=yellow
+
+vim如何使用cscope
+
+(1)安装CSCOPE
+（2）生成cscope.files
+find `pwd` -name "*.[ch]" -o -name "*.cpp" > cscope.files
+cscope -bR -i cscope.files
+(3)修改~/.vimrc
+if has("cscope")  
+    set csprg=/usr/bin/cscope  
+	set csto=0 
+	set cst  
+	set csverb  
+	set cspc=3 
+	"add any database in current dir  
+	if filereadable("cscope.out")  
+		cs add cscope.out  
+		"else search cscope.out elsewhere  
+	else 
+		let cscope_file=findfile("cscope.out",".;")  
+		let cscope_pre=matchstr(cscope_file,".*/")  
+		if !empty(cscope_file) && filereadable(cscope_file)  
+			exe "cs add" cscope_file cscope_pre  
+		endif        
+	endif  
+endif
+
+自动补全括号(ctrl+n可以补全本文件中的变量)
+在~/.vimrc中添加内容：
+	inoremap ( ()<ESC>i
+	inoremap [ []<ESC>i
+	inoremap { {}<ESC>i
+	"inoremap < <><ESC>i
+	inoremap " ""<ESC>i
+	inoremap ' ''<ESC>i
+
+设置80列高亮 ~/.vimrc
+	set cc=80
