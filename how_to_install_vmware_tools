@@ -1,0 +1,45 @@
+
+How to install vmware tools
+1.虚拟机-》安装vmware tools
+2.在弹出的界面中将VMwareTools...拷贝到/home/cx/Downloads下
+3.解压该文件 tar zxf VMwareTools
+4.在命令行上执行./vmware-install.pl
+5.重启系统
+
+设置共享文件夹
+虚拟机-》设置-》选项-》共享文件夹
+
+
+https://blog.csdn.net/weixin_42353331/article/details/88679638
+
+https://blog.csdn.net/qq_36652619/article/details/85006200
+
+cscope install
+1. apt-get install cscope
+2. check it supports cscope: vim --version grep 'cscope'
+3. Build a cscope database: cscope -Rbq
+4. Find all the files which can be research: find . -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" > cscope.files
+5. Build connect between database and file: cscope -R -b -i cscope.files
+6. Modify /etc/vim/vimrc:
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" cscope setting
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+if has("cscope")  
+	set csprg=/usr/bin/cscope  
+	set csto=1  
+	set cst  
+	set nocsverb  
+	" add any database in current directory  
+	if filereadable("cscope.out")      
+		cs add cscope.out  
+	endif  
+	set csverb
+endif 
+nmap <C-@>s :cs find s <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>t :cs find t <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>e :cs find e <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+nmap <C-@>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+nmap <C-@>d :cs find d <C-R>=expand("<cword>")<CR><CR>
