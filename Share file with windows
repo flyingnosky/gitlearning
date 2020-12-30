@@ -1,0 +1,3 @@
+## Share file with windows
+- Virtual Machine -> Setting -> Options -> Share file
+- Share  /mnt/hgfs/winshare with windowns file
