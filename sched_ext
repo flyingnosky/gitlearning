@@ -1,1 +1,17 @@
 # Overview
+本文档对sched_ext仓库提供了一个高层级的介绍，该仓库包含使用Linux kernel的sched_ext框架的用户定制CPU调度器的实现，以及支持util和开发的工具。
+对于特定调度器的实现，请查看章节*调度器的实现*。
+对于系统build和开发setup细节，请查看*Installation and setup*。
+## What's sched_ext
+sched_ext是实现了内核线程调度器到BPF并动态将其加载到运行的内核中。该框架允许安全且快速的迭代scheduler实现，动态的调度策略范围，可以在产品环境中实验和部署。
+sched_ext开发的主要目的是将调度策略由之前静态的内核代码实现的转移到用户可编程的BPF程序决定，同时维持了安全的保证和内核级别调度要求的性能要求。
+## System Architecture
+sched_ext生态包含多个层级，这些层级一起为定制的CPU调度提供了完整的框架。
+[Framework]
+架构允许这样一个层级方法：BPF程序运行在内核空间可以访问调度的组件，用户态组件提供策略逻辑，Monitor和开发工具。
+## Scheduler implementation Patterns
+仓库中不同的调度器根据调度决策位置遵循不同的架构模式。
+[]
+模式多样性允许开发者在性能（BPF执行）和灵活性（用户态逻辑）之间根据自己特定的调度要求选择合适的方法。
+
+
