@@ -1,0 +1,10 @@
+
+cargo vendor --sync Cargo.lock ./vendor
+cargo package
+
+[source.crates-io]
+replace-with = "vendored-source"
+
+[source.vendored-sources]
+directory = "./vendor"
+
