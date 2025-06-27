@@ -53,3 +53,9 @@ Various stable branches       Backports      Support for older kernels
 文件kernel-verison.json跟踪commit hash，内核版本，每个分支的metadata，保证跨内核版本的可复制性。
 整个overview是理解sched_ext生态的基础。
 
+# Architecture
+本文档描述了sched_ext的整个架构，sched_ext是可以使用eBPF实现定制的线程调度的Linux内核框架。它包含内核与用户组件的区分，通过调度实现各种框架特征。
+## System Overview
+sched_ext框架基于Linux内核sched_ext接口，它允许eBPF程序通过一组定义好的操作实现调度策略。系统设计对内核BPF代码（performance-critical决策）和可选的用户态代码（实现复杂的策略逻辑）做严格的区分。
+[]
+## Core BPF framework
