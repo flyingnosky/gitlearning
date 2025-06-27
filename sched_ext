@@ -13,5 +13,43 @@ sched_ext生态包含多个层级，这些层级一起为定制的CPU调度提�
 仓库中不同的调度器根据调度决策位置遵循不同的架构模式。
 []
 模式多样性允许开发者在性能（BPF执行）和灵活性（用户态逻辑）之间根据自己特定的调度要求选择合适的方法。
-
+## Key Components
+Component        Location        Purpose
+sched_ext      kernel module    Provides BPF hooks and scheduler registration
+common.bpf.h   scheds/include/  Shared BPF helper functions and macros
+scx_utils      rust/scx_utils/  Rust utility library for topology, CPU masks etc
+scx_rustland_core  scx_utils    Framework for userspace-centric schedulers
+## Scheduler Implementations
+scheduler        Type              Description
+scx_simple       Pure BPF          Basic global vtime scheduler
+scx_layered      Hybrid            Multi-layer scheduler with BPF dispatch + Rust policy
+scx_lavd         Hybrid            Latency-aware virtual deadline scheduler
+scx_rustland    Userspace-centric  Most scheduling decision in Rust userspace
+scx_rusty        Hybrid            Multi-domain load balancer
+scx_bpfland      Hybrid            vruntime-based interactive workload scheduler
+## Development Inftrastructure
+[]
+build系统自动处理依赖管理，包括从libbpf和bpftool的repo仓库获取和编译。
+## Usage and Operation
+### Basic Usage Pattern
+sched_ext调度器的基础使用比较直接，运行调度器二进制并加载到kernel：
+···
+# Check current scheduler state
+cat /sys/kernel/sched_ext/state
+# Run a scheduler (loads into kernel)
+scx_simple
+···
+简单的接口隐藏了BPF程序加载的复杂性，内核的注册以及调度器生命周期的管理。
+### Monitoring and Observability
+[]
+调度器提供了多个monitor接口，从内置的统计信息到外部的Monitor工具，使能了调度器行为的可视化。
+### Kernal support and Compatibility
+通过结构化的版本管理，仓库维护跨内核版本件的兼容性。
+Kernel branch            status              Purpose
+sched_ext/for-next      Development          Latest sched_ext features
+bpf/bpf-next            Integration          BPF subsystem integration
+stable/linux-rolling-stable  stable          Production-ready releases
+Various stable branches       Backports      Support for older kernels
+文件kernel-verison.json跟踪commit hash，内核版本，每个分支的metadata，保证跨内核版本的可复制性。
+整个overview是理解sched_ext生态的基础。
 
