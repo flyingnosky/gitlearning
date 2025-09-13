@@ -1,0 +1,2 @@
+# Idle thread
+When there is no other threads in CPU's runqueue, idle thread will be scheduled. Every CPU has a idle thread called "swapper".
