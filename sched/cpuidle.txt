@@ -1,2 +1,7 @@
 # Idle thread
 When there is no other threads in CPU's runqueue, idle thread will be scheduled. Every CPU has a idle thread called "swapper".
+It has different idle states for different hardware device, and so the enter time (entry-latency-us) and the exit time of idle state are different. More deeper idle state, it takes more time for enter and exit idle state.
+- entry-latency-us
+- residency-us
+- exit-latency-us
+[Add picture descript above relationship]
