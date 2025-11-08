@@ -1,0 +1,29 @@
+# Analysis of LAVD scheduler
+
+## Function pick_idle_cpu()
+It select CPUs for tasks. Detail is as follows:
+- If task is pinned (only one cpu in affinity) or is_migration_disabled(), select prev_cpu;
+- If task cannot run on either active or overflow cpumask, use online_cpumask & p->cpus_ptr and use the cpu to extend overflow cpumask;
+- Function find_sticky_cpu_and_cpdom() finds a sticky cpu (prev_cpu or a waker cpu) and compute domain considering core & task type
+  -- If p->task_big == cpuc->big_core (previous CPU), ctx->cpdoms_match[] is cpdom of previous CPU, ctx->cpus_match[] is previous CPU;
+  -- If p->task_big != cpuc->big_core (previous CPU), ctx->cpdoms_match[] is cpdom_alt of previous CPU;
+  -- If is_sync_wakeup (wakee and waker use the same CPUs, the situation is the same as previous CPU
+  so:
+  -- If only prev cpu type is the same as task's type, use prev cpu's cpdomain as sticky cpdom and use previous cpu as sticky cpu;
+  -- If only prev cpu type is not the same as task's type, use prev cpu's alt_cpdomain as sticky cpdom;
+  -- If only sync_waker cpu type is the same as task's type, use sync waker's cpdomain as ticky cpdom and use sync waker's cpu as sticky cpu;
+  -- If only sync waker cpu type is nto the same as task's type, use sync waker's alt_cpdom as sticky cpdom;
+  -- If prev cpu type and sync waker cpu type are the same as task's type, choose least loaded cpdom as sticky cpdom, and only choose previous cpu as sticky cpu;
+  -- If prev cpu type and sysnc waker cpu type are not the same as tasks' type, choose least loaded alt_cpdom as sticky cpdom;
+- If failed to find sticky cpdom, use pick_random_cpu() to choose arbitraty CPU;
+- If no idle CPU, select CPU as follows:
+  -- If sticky_cpu > 0, select sticky cpu;
+  -- Find a cpu from active set
+  -- Find a cpu from ovrflw set
+- If idle CPUs, select CPU as follows:
+  -- If sticky_cpu is idle, select sticky_cpu;
+  -- If sync waker cpu is idle, select sync waker cpu;
+  -- If active set or overflow are not idle, find sticky cpu from sticky cpdom;
+  -- If there are idle cpu on turbo, active or overflow set, select a cpu from them;
+- Otherwise, select prev_cpu
+  
