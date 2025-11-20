@@ -27,3 +27,23 @@ It select CPUs for tasks. Detail is as follows:
   -- If there are idle cpu on turbo, active or overflow set, select a cpu from them;
 - Otherwise, select prev_cpu
   
+## Function plan_x_cpdom_migration
+It is called when *sys_stat timer* reaches and nr_cpdoms > 1. So it only supports tasks migration between cpdoms.
+Stealee: if cpdoms' sc_load > stealee_threshold, is_stealee = true
+Stealer: if cpdoms' sc_load < stealer_threshold, is_stealer = true
+When dispatching tasks, if there is no idle CPU, it will call force_to_steal_tasks to steal tasks from stealee cpdom to stealer cpdom.
+When sys_stat timer reaches:
+- Calc sc_load for each cpdom, and also min_sc_load and max_sc_load;
+- Stealer_threshold = avg_sc_load - delta
+  Stealee_threshold = avg_sc_load - delta
+  -- if very busy, delta = 1/16 * avg_sc_load
+  -- if not busy, delta = 1/4 * avg_sc_load
+  -- Or, delta = 1/8 * avg_sc_load
+  so if system is busy, it is more easy to migrate task
+- if cpdomc->sc_load <= stealer_threshold, is_stealer = true
+- if cpdomc->sc_load >= stealee_threshold, is_stealee = true
+
+
+
+
+
