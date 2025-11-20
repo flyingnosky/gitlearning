@@ -43,6 +43,12 @@ When sys_stat timer reaches:
 - if cpdomc->sc_load <= stealer_threshold, is_stealer = true
 - if cpdomc->sc_load >= stealee_threshold, is_stealee = true
 
+## Function force_to_steal_task
+It is called when consume_task() is failed, it presents that there is no tasks in current cpdom. Then it will pick task from neighbor cpdom's most loaded CPU.
+- How to select neighbor cpdom? It selects in arbitrary order with pick_any_bit(cpdomc->neighbor_bits[])
+- Which CPU is most loaded? If it has most nr_queued task in the DSQ with pick_most_loaded_cpu()
+
+
 
 
 
