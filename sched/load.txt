@@ -1,33 +1,25 @@
 # Load of LAVD scheduler
 
 ## taskc related
+
 ### taskc->lat_cri
   (log2(wait_ft * wake_ft) + log2(p->scx.weight)) * (log2(wait_ft * wake_ft) + log2(p->scx.weight))
-
   taskc->wait_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_quiescent_clk) * 1/8 + taskc->wait_freq * 7/8  (lavd_quiescent)
   taskc->wake_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_runnable_clk) * 1/8 + taskc->wake_freq * 7/8  (lavd_runnable)
-
 ### taskc->perf_cri
   has_little_core ->  log2(wait_ft * wake_ft) + log2((taskc->run_freq * taskc->avg_runtime) >> LAVD_SHIFT * p->scx.weight)
-
   taskc->run_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_quiescent_clk + taskc->avg_runtime) * 1/8 + taskc->run_freq * 7/8  (lavd_runnable)
-
 ### taskc->acc_runtime
   taskc->acc_runtime += now - (taskc->last_measured_clk + cpuc->online_clk - cpuc->offline_clk)  (stopping / tick)
-
 ### taskc->avg_runtime
   taskc->avg_runtime = task->avg_runtime * 0.75 + taskc->acc_runtime * 0.25
-
 ### taskc->svc_time
 ### taskc->acc_runtime
 
 ## cpdom related
-
 ### cpdom->cur_util_sum
   cpdom->cur_util_sum  <- cpuc->cur_util: sum of cur_util of cpus, it is used in fucntion plan_x_cpdom_migration (balance)
-
   cpdom->nr_queued_task: it is also used in function plan_x_cpdom_migration() and can_boost_slice()
-
 
 ## cpuc related
 ### cpuc->idle_total
@@ -65,33 +57,46 @@
     记录在CPU上发生抢占的次数
 ### cpuc->max_lat_cri
     记录在CPU上运行的最大lat_cri
-  cpuc->min_perf_cri
-  cpuc->max_perf_cri
-  cpuc->sum_perf_cri
-  cpuc->idle_start_clk
-  cpuc->idle_total
-  cpuc->cur_util
-  cpuc->avg_util
+### cpuc->min_perf_cri
+    记录在CPU上运行的最小perf_cri
+### cpuc->max_perf_cri
+    记录在CPU上运行的最大perf_cri
+###　cpuc->sum_perf_cri
+    记录在CPU上task的perf_cri总和
+###　cpuc->idle_start_clk
 
 ## system related
 ### c->duration
 本次窗口持续时间，c->duration = c->now - sys_stat.last_update_clk
-  c->nr_queued_task
+### c->nr_queued_task
   c->tot_sc_time
-  c->nr_big
-  c->nr_pc_on_big
-  c->nr_lc_on_big
-  c->nr_perf_cri
-  c->nr_lat_cri
-  c->nr_x_migration
-  c->sum_lat_cri
-  c->nr_sched
-  c->nr_preempt
-  c->max_lat_cri
-  c->min_perf_cri
-  c->max_perf_cri
-  c->sum_perf_cri
-  c->idle_total
-  c->tsct_spike
+### c->nr_big
+    在BIG CORE上运行的task数量
+###　c->nr_pc_on_big
+    在BIG CORE上运行的perf cri的task数量
+### c->nr_lc_on_big
+    在BIG CORE上运行的lat cri的task数量
+###　c->nr_perf_cri
+    系统上运行的perf cri task数量
+###　c->nr_lat_cri
+    系统上运行的lat cri task的数量
+###　c->nr_x_migration
+    系统上不同ｃｐｄｏｍ上迁移的ｔａｓｋ数量
+### c->sum_lat_cri
+### c->nr_sched
+### c->nr_preempt
+### c->max_lat_cri
+### c->min_perf_cri
+### c->max_perf_cri
+### c->sum_perf_cri
+### c->idle_total  (*)
+### c->tsct_spike
 ### c->avg_lat_cri
   系统上平均的lat_cri
+
+## sys_stat
+### sys_stat.thr_perf_cri
+    用于判断task是否为perf cri，若task的perf_cri大于thr_perf_cri，则为perf cri的task;
+    它主要使用在：
+    - 在pick_idle_cpu()时选核考虑perf cri task与大核匹配
+    - 在running时统计cpuc->nr_perf_cri数量
