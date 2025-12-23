@@ -1,32 +1,97 @@
 # Load of LAVD scheduler
 
-## taskc->lat_cri
+## taskc related
+### taskc->lat_cri
   (log2(wait_ft * wake_ft) + log2(p->scx.weight)) * (log2(wait_ft * wake_ft) + log2(p->scx.weight))
 
   taskc->wait_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_quiescent_clk) * 1/8 + taskc->wait_freq * 7/8  (lavd_quiescent)
   taskc->wake_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_runnable_clk) * 1/8 + taskc->wake_freq * 7/8  (lavd_runnable)
 
-## taskc->perf_cri
+### taskc->perf_cri
   has_little_core ->  log2(wait_ft * wake_ft) + log2((taskc->run_freq * taskc->avg_runtime) >> LAVD_SHIFT * p->scx.weight)
 
   taskc->run_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_quiescent_clk + taskc->avg_runtime) * 1/8 + taskc->run_freq * 7/8  (lavd_runnable)
 
-## taskc->acc_runtime
+### taskc->acc_runtime
   taskc->acc_runtime += now - (taskc->last_measured_clk + cpuc->online_clk - cpuc->offline_clk)  (stopping / tick)
 
-## taskc->avg_runtime
+### taskc->avg_runtime
   taskc->avg_runtime = task->avg_runtime * 0.75 + taskc->acc_runtime * 0.25
 
+### taskc->svc_time
+### taskc->acc_runtime
 
 ## cpdom related
 
+### cpdom->cur_util_sum
   cpdom->cur_util_sum  <- cpuc->cur_util: sum of cur_util of cpus, it is used in fucntion plan_x_cpdom_migration (balance)
 
   cpdom->nr_queued_task: it is also used in function plan_x_cpdom_migration() and can_boost_slice()
-  c->nr_queued_task
+
 
 ## cpuc related
-  cpuc->tot_sc_time
-  cpuc->tot_svc_time
-  cpuc->cur_sc_util
-  cpuc->avg_sc_util
+### cpuc->idle_total
+    记录在当前周期内CPU的idle总时间
+### cpuc->cur_util
+    当前CPU的cur_util = (c->duration - cpuc->idle_total) / c->duration
+### cpuc->avg_util
+    cpuc->avg_util = cpuc->avg_util * 7/8 + cpuc->cur_util * 1/8，它用于scaling frequency
+### cpuc->nr_pinned_task
+    记录当前CPU上等待执行（enqueue +1）的pinned task数量，在pinned task running时-1；
+    若sys_stat.nr_queued_task <= sys_stat.nr_active，can_boost_slice()返回true
+### cpuc->tot_svc_time
+    svc_time = runtime / p->scx.weight：运行时间
+    sc_time = scale_cap_freq(runtime, cpu_id): 经过freq/cap归一化后的运行时间
+    记录当前CPU上一个周期内的svc_time
+### cpuc->tot_sc_time
+    记录当前CPU上一个周期内的sc_time
+###　cpuc->cur_sc_util
+    cpuc->cur_sc_util = cpuc->tot_sc_time / c->duration，当前CPU sc_time的利用率
+### cpuc->avg_sc_util
+    cpuc->avg_sc_util = 7/8 * cpuc->avg_sc_util + 1/8 * cpuc->cur_sc_util
+### cpuc->nr_perf_cri
+    判断task是否为perf_cri，是通过函数is_perf_cri()，即taskc->perf_cri是否超过sys_stat.thr_perf_cri
+    cpuc->nr_perf_cri表示运行在CPU上的perf_cri task的数量
+### cpuc->nr_lat_cri
+    判断task是否为lat_cri，是通过函数is_lat_cri()，即taskc->lat_cri是否超过sys_stat.avg_lat_cri
+    cpuc->nr_perf_cri表示运行在CPU上的lat_cri task数量
+### cpuc->nr_x_migration
+    task运行在不同的cpdom上的次数
+### cpuc->sum_lat_cri
+    记录运行在CPU上task的lat_cri的总和;
+### cpuc->nr_sched
+    记录运行在CPU上task总数
+### cpuc->nr_preempt
+    记录在CPU上发生抢占的次数
+### cpuc->max_lat_cri
+    记录在CPU上运行的最大lat_cri
+  cpuc->min_perf_cri
+  cpuc->max_perf_cri
+  cpuc->sum_perf_cri
+  cpuc->idle_start_clk
+  cpuc->idle_total
+  cpuc->cur_util
+  cpuc->avg_util
+
+## system related
+### c->duration
+本次窗口持续时间，c->duration = c->now - sys_stat.last_update_clk
+  c->nr_queued_task
+  c->tot_sc_time
+  c->nr_big
+  c->nr_pc_on_big
+  c->nr_lc_on_big
+  c->nr_perf_cri
+  c->nr_lat_cri
+  c->nr_x_migration
+  c->sum_lat_cri
+  c->nr_sched
+  c->nr_preempt
+  c->max_lat_cri
+  c->min_perf_cri
+  c->max_perf_cri
+  c->sum_perf_cri
+  c->idle_total
+  c->tsct_spike
+### c->avg_lat_cri
+  系统上平均的lat_cri
