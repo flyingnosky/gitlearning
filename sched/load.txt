@@ -1,0 +1,32 @@
+# Load of LAVD scheduler
+
+## taskc->lat_cri
+  (log2(wait_ft * wake_ft) + log2(p->scx.weight)) * (log2(wait_ft * wake_ft) + log2(p->scx.weight))
+
+  taskc->wait_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_quiescent_clk) * 1/8 + taskc->wait_freq * 7/8  (lavd_quiescent)
+  taskc->wake_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_runnable_clk) * 1/8 + taskc->wake_freq * 7/8  (lavd_runnable)
+
+## taskc->perf_cri
+  has_little_core ->  log2(wait_ft * wake_ft) + log2((taskc->run_freq * taskc->avg_runtime) >> LAVD_SHIFT * p->scx.weight)
+
+  taskc->run_freq = LAVD_TIME_ONE_SEC / (now - taskc->last_quiescent_clk + taskc->avg_runtime) * 1/8 + taskc->run_freq * 7/8  (lavd_runnable)
+
+## taskc->acc_runtime
+  taskc->acc_runtime += now - (taskc->last_measured_clk + cpuc->online_clk - cpuc->offline_clk)  (stopping / tick)
+
+## taskc->avg_runtime
+  taskc->avg_runtime = task->avg_runtime * 0.75 + taskc->acc_runtime * 0.25
+
+
+## cpdom related
+
+  cpdom->cur_util_sum  <- cpuc->cur_util: sum of cur_util of cpus, it is used in fucntion plan_x_cpdom_migration (balance)
+
+  cpdom->nr_queued_task: it is also used in function plan_x_cpdom_migration() and can_boost_slice()
+  c->nr_queued_task
+
+## cpuc related
+  cpuc->tot_sc_time
+  cpuc->tot_svc_time
+  cpuc->cur_sc_util
+  cpuc->avg_sc_util
