@@ -127,3 +127,25 @@
     - 若达到sys_stat.slice时间，执行scx_bpf_kick_cpu(SCX_KICK_PREEMPT)抢占
     - 若没有达到sys_stat.slice时，在sys_stat.slice - dur后放弃CPU
     函数shrink_boosted_slice_at_tick()在tick到来时调整boost slice,作用与shrink_boosted_slice_remote类似
+### sys_stat.avg_svc_time
+    sys_stat.avg_svc_time = c->tot_svc_time / c->nr_sched
+    它在计算greedy时用，calc_greedy_penalty()，用于计算calc_when_to_run()。
+### sys_stat.avg_sc_util
+    sys_stat.avg_sc_util = calc_asym_avg(sys_stat.avg_sc_util, c->curr_sc_util) 
+    它用于power mode中core compaction中计算nr_active_cpu，calc_required_capacity()。
+### sys_stat.avg_util
+    c->cur_util = (c->duration_total - c->idle_total) / c->duration_total
+    sys_stat.avg_util = calc_asym_avg(sys_stat.avg_util, c->cur_util)
+    目前没有看到在其他地方使用
+### sys_stat.thr_lat_cri
+    sys_stat.thr_lat_cri = sys_stat.max_lat_cri - ((sys_stat.max_lat_cri - sys_stat.min_lat_cri)>>preempt_shift)
+    它用于preempt，若task的lat_cri大于thr_lat_cri，可以preempt其他task
+### sys_stat.avg_lat_cri
+    c.avg_lat_cri = c->sum_lat_cri / c->nr_sched
+    sys_stat.avg_lat_cri = calc_avg32(sys_stat.avg_lat_cri, c->avg_lat_cri)
+    它用于判断当前task是否为lat_cri （is_lat_cri（）），若task的lat_cri大于sys_stat.avg_lat_cri，它为lat_cri;
+    另外在pipeline中需要使用它来过滤部分task
+### sys_stat.nr_stealee
+    需要在不同cpdomain中迁移的数量
+
+
