@@ -100,3 +100,30 @@
     它主要使用在：
     - 在pick_idle_cpu()时选核考虑perf cri task与大核匹配
     - 在running时统计cpuc->nr_perf_cri数量
+
+    函数update_thr_perf_cri()在每个周期到来时Update sys_stat.thr_perf_cri，它与sys_stat.max_perf_cri/min_perf_cri/avg_perf_cri来计算。
+### sys_stat.nr_queued_task
+    当前系统中排队的task数量，
+    她主要使用在：
+    - migration计算负载时
+    - can_boost_slice()计算是否boost slice: 若nr_queued_task < nr_active时，需要boost；否则不需要boost
+### sys_stat.slice
+    若nr_queued_task > 0, slice = 8ms * sys_stat.nr_active / nr_q
+    否则 slice = slice_max_ns = 5ms
+
+    slice_max_us:5000
+    slice_max_us: 500
+
+    函数calc_time_slice计算task的slice:
+    - 同时满足以下三个条件，可以boost slice
+      - !no_slice_boost：没有定义no_slice_boost
+      - !cpuc->nr_pinned_tasks: 没有pinned task在等待
+      - taskc->avg_runtime >= sys_stat.slice：运行时间大于sys_stat.slice
+    若can_boost_slice()即nr_queued_task < nr_active时，slice = clamp (taskc->avg_runtime + LAVD_SLICE_BOOST_BONUS)
+    否则系统为high load，仅仅对lat_cri > avg_lat_cri的task进行boost slice，slice = sys_stat.slice + sys_stat.slice * taskc->lat_cri / (sys_stat.avg_lat_cri + 1)
+    不进行boost slice时，slice = sys_stat.slice
+
+    函数shrink_boosted_slice_remote(cpuc, now)将之前设置为LAVD_FLAG_SLICE_BOOST的task的slice恢复：
+    - 若达到sys_stat.slice时间，执行scx_bpf_kick_cpu(SCX_KICK_PREEMPT)抢占
+    - 若没有达到sys_stat.slice时，在sys_stat.slice - dur后放弃CPU
+    函数shrink_boosted_slice_at_tick()在tick到来时调整boost slice,作用与shrink_boosted_slice_remote类似
