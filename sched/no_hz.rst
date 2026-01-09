@@ -26,3 +26,22 @@ CONFIG_NO_HZ_IDLE=y选项使内核避免发送调度时钟中断给idle CPU, 这
 因此如果系统有比较激进的real-time响应限制，通常会运行CONFIG_HZ_PERIODIC=y的内核，这是为了减少从idle转化的latency。
 boot参数"nohz="用于指定dyntick-idle mode, 可以通过nohz=off关闭dyntick-idle mode。默认nohz=on且CONFIG_NO_HZ_IDLE=y时使能dyntick-idle mode.
 
+## Omit Scheduling-Clock Ticks For CPUs with Only One Runnable Task
+如果CPU仅有一个runnable task, 没有必要对该CPU发送调度时钟中断，因为没有其他的task可以切换。
+注意对只有一个runnable task的CPU不发送调度时钟中断意味着对idle CPUs也不会发送。
+CONFIG_NO_HZ_FUL=y选项可以避免让内核发送调度时钟中断给只有一个runnable task的CPU，这些CPU被称为“adaptive-ticks CPUs”。
+这对于有强烈real-time回复要求的应用非常重要，因为它可以改进糟糕的响应时间，响应时间可能由调度时钟中断持续延长。
+如果某一个CPU在给定的过程被延长，其他CPU也被迫等待idle直到延长的CPU完成。因此，这个延长可能是加倍的。在这种情况下，强烈
+意愿不发送调度时钟中断。
+默认情况不会配置adaptive-ticks CPU。“nohz_full=”启动参数指定adaptive-ticks CPU。比如"nohz_full=1,6-8"表示CPU 1, 6, 7, 8都
+为adaptive-ticks CPU。注意不能将所有CPU都作为adaptive-ticks CPU：至少要有一个non-adaptive-tick CPU保持Online来处理timekeeping task， 这是为了保证系统调用gettimeofday()时在adaptive-tick CPU上返回准确的值。
+（这对于CONFIG_NO_HZ_IDLE没有问题，因为在idle CPU上没有可以运行的用户态进程，没有clock要求）注意这意味着在CONFIG_NO_HZ_FULL=y有效果时必须至少有2个CPU。
+最后，adaptive-ticks CPUs必须有他们rcu callbacks offload。这在“RCU IMPLICATIONS”章节会涉及。
+正常情况下，一个CPU可以保持adaptive-ticks mode尽可能长。切换到内核态模式并不能自动改变mode。在必要对时候，比如CPU进入RCU callback时，CPU会退出adaptive-tick mode。
+与dyntick-idle mode类似，adaptive-tick mode也有损耗：
+1. CONFIG_NO_HZ_FULL选择CONFIG_NO_HZ_COMMON，因此无法在不运行dynamic idle情况下运行adaptive tick mode。这个依赖也扩展到了实现。CONFIG_NO_HZ_FULL存在CONFIG_NO_HZ_IDLE的代价。
+2. 由于需要通知内核子系统（RCU）在mode上的变化，user/kernel切换会有一些损耗
+3. POSIX CPU timer会阻止CPU进入adaptive-tick mode。Real-time应用需要采取其他的手段代替posix cpu timer
+4. 如果有超过硬件可容纳的perf event处于Pending, 正常他们通过Round-robin方式处理。adaptive-tick mode可能会阻止RR的发生。在进入adaptive-tick mode后可以阻止大量的perf event处于Pending，这可能可以解决这个问题
+5. 对adaptive-tick CPU的调度统计的计算可能与non-adaptive-tick CPU不一样。同样这可能扰乱real-time task的负载均衡。
+尽管随着时间推移，上述问题会有改善。adaptive-tick对于很多real-time和计算性的应用很有作用。但是，上面列的问题意味着adaptive-ticks mode还不能作为默认使能。
