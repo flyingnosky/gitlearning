@@ -45,3 +45,18 @@ CONFIG_NO_HZ_FUL=y选项可以避免让内核发送调度时钟中断给只有�
 4. 如果有超过硬件可容纳的perf event处于Pending, 正常他们通过Round-robin方式处理。adaptive-tick mode可能会阻止RR的发生。在进入adaptive-tick mode后可以阻止大量的perf event处于Pending，这可能可以解决这个问题
 5. 对adaptive-tick CPU的调度统计的计算可能与non-adaptive-tick CPU不一样。同样这可能扰乱real-time task的负载均衡。
 尽管随着时间推移，上述问题会有改善。adaptive-tick对于很多real-time和计算性的应用很有作用。但是，上面列的问题意味着adaptive-ticks mode还不能作为默认使能。
+
+## RCU implications
+存在一种情况idle CPU不允许进入到dyntick-idle或adaptive-tick模式，即CPU存在pending callbacks.
+为了避免这种情况，使用CONFIG_RCU_NOCB_CPU=y选项将RCU callback处理卸载到“rcuo”内核线程。使用rcu_nocbs=内核启动参数来选择指定CPU来卸载，用逗号来间隔CPU，比如“1， 3-5”表示选择CPU 1, 3, 4, 5。注意"nohz_full"内核启动参数指定的CPU也可以卸载。
+用于卸载的CPU不会对RCU callback排队，因此RCU也不会阻止卸载CPU进入到dyntick-idle或adaptive-tick模式。也就是说，由用户态决定将rcuo线程固定在特定的CPU上。否则调度器来决定在哪里运行，在哪里不运行。
+
+## Testing
+如果在你使能文档中描述的所有OS-jitter特性，但没有看到负载行为的变化，到底是因为你的负载没有收OS-jitter特性的影响，还是因为其他的呢？本节通过提供简单的OS-jitter测试套来帮助你回答该问题，这些测试套在git位置如下：
+git://git.kernel.org/pub/scm/linux/kernel/git/frederic/dynticks-testing.git
+GIT CLONE该仓库并根据README文件操作。
+测试流程会产生一个trace,该trace可以允许你来评估是否你成功的从你的系统中移除了OS jitter。如果trace显示你已经移除了OS jitter，那么你可以得出你的负载完全对OS jitter不敏感的结论。
+NOTE：测试要求你的系统至少有2个CPU。目前没有好的方法在单CPU上移除OS jitter。
+
+## Known Issues
+- Dyntick-idle稍微会导致从idle唤醒或进入idle的过程缓慢。实际上这对于大多数aggressive real-time workload都不算问题，除非负载有关掉dytick-idle模式。但是一些负载毫无疑问想要使用adaptive tick来减少调度时钟中断时延。对于这些负载有下列选项：
