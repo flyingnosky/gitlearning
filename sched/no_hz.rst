@@ -60,3 +60,10 @@ NOTE：测试要求你的系统至少有2个CPU。目前没有好的方法在单
 
 ## Known Issues
 - Dyntick-idle稍微会导致从idle唤醒或进入idle的过程缓慢。实际上这对于大多数aggressive real-time workload都不算问题，除非负载有关掉dytick-idle模式。但是一些负载毫无疑问想要使用adaptive tick来减少调度时钟中断时延。对于这些负载有下列选项：
+  a. 使用来自用户态的PMQOS来通知内核你的latency要求（推荐）
+  b. 在x86系统上，使用idle=mwait启动参数
+  c. 在x86系统上，使用intel_idle.max_cstate=来限制最大的C-state深度
+  d. 在x86系统上，使用idle=poll启动参数。
+    但注意使用该参数会导致你的CPU过热，它可能导致thermal throttling，最终degrade latency，这可能导致比dyntick-idle更差。同时这个参数会disable Intel CPU的turbo模式，这会明显减少最大性能。
+- Adaptive tick模式稍微会导致user/kernel转换的过程缓慢。对于计算密集性的负载，特别是很少有转换的，这并不是一个问题。要求有细致的benchmark来决定是否有其他负载被影响
+- 如果不是一个CPU上一个runnable task，Adaptive tick模式不会做任何事，即使是调度时钟tick不需要的场景。
