@@ -1,0 +1,36 @@
+#!/usr/bin/env bpftrace
+
+BEGIN
+{
+    printf("Tracing wakeups for \"job worker\" for 120 seconds...\n");
+}
+
+tracepoint:sched:sched_wakeup,
+tracepoint:sched:sched_wakeup_new
+/args->comm == "Job.worker 0"/
+{
+    @wakeups_by_target_cpu_0[cpu] = count();
+    @waker_comm_count_0[comm] = count();
+}
+
+tracepoint:sched:sched_wakeup,
+tracepoint:sched:sched_wakeup_new
+/args->comm == "Job.worker 1"/
+{
+    @wakeups_by_target_cpu_1[cpu] = count();
+    @waker_comm_count_1[comm] = count();
+}
+
+interval:s:10
+{
+    exit();
+}
+
+END
+{
+    printf("\n=== Wakeups from source CPU ===\n");
+    print(@wakeups_by_target_cpu_0);
+    print(@wakeups_by_target_cpu_1);
+        print(@waker_comm_count_0);
+        print(@waker_comm_count_1);
+}
