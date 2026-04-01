@@ -1,0 +1,61 @@
+#!/usr/bin/env bpftrace
+
+BEGIN
+{
+  printf("Tracing CPU6 -> CPU3 send->entry latency (Rescheduling interrupts)... Ctrl-C to stop\n");
+}
+
+tracepoint:ipi:ipi_send_cpu
+/cpu == 6 && args->cpu == 3/
+{
+  @send_cnt = count();
+  @tx_seq = @tx_seq + 1;
+  $seq = @tx_seq;
+  @send_ts[$seq] = nsecs;
+}
+
+tracepoint:ipi:ipi_entry
+/cpu == 3 && str(args->reason) == "Rescheduling interrupts" && @rx_seq < @tx_seq/
+{
+  @rx_seq = @rx_seq + 1;
+  $seq = @rx_seq;
+
+  if (@send_ts[$seq]) {
+    $delta = nsecs - @send_ts[$seq];
+
+    @entry_cnt = count();
+    @lat_min_ns = min($delta);
+    @lat_max_ns = max($delta);
+    @lat_avg_ns = avg($delta);
+    @lat_hist_us = hist($delta / 1000);
+
+    delete(@send_ts[$seq]);
+  }
+}
+
+tracepoint:irq:irq_handler_entry
+/cpu == 6 && args->irq == 1/
+{
+  @irq1_cnt = count();
+}
+
+interval:s:120
+{
+  exit();
+}
+
+END
+{
+  printf("\n=== Summary ===\n");
+  print(@send_cnt);
+  print(@entry_cnt);
+  print(@irq1_cnt);
+  print(@lat_min_ns);
+  print(@lat_max_ns);
+  print(@lat_avg_ns);
+  print(@lat_hist_us);
+
+  clear(@send_ts);
+  clear(@tx_seq);
+  clear(@rx_seq);
+}
