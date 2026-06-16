@@ -1,0 +1,10 @@
+# GPU Hardware Definitions
+本文档描述了adreno GPUs的硬件接口，包括GPU模式识别，硬件特征，寄存器映射和performance counter。硬件定义作为特定代GPU的实现的基础，
+使驱动支持从一个通用codebase中支持多个GPU变量。
+##Overview of Hardware Definition System
+KGSL驱动维护了所有支持的adreno GPU的全面的硬件定义，这些定义包括：
+- GPU Database：一个包含识别标准和硬件特征的编译时目录
+- Hardware Characteristics：per-GPU配置，包括特征，firmware名称，clock setting，power特征，hardware control gate(HWCG)寄存器配置
+- Register Definitions：每个GPU代的内存映射的寄存器偏移的头文件
+- Register Mapping System：跨多内存映射区域访问GPU寄存器的实时抽象层
+- Performance Counter Infrastructure：由功能块组织的hardware performance monitering counter
