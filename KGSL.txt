@@ -8,3 +8,66 @@ KGSL驱动维护了所有支持的adreno GPU的全面的硬件定义，这些定
 - Register Definitions：每个GPU代的内存映射的寄存器偏移的头文件
 - Register Mapping System：跨多内存映射区域访问GPU寄存器的实时抽象层
 - Performance Counter Infrastructure：由功能块组织的hardware performance monitering counter
+
+# Memory Management
+## Purpose and Scope
+本文档描述了KGSL adreno GPU驱动的内存管理子系统。内存管理处理GPU内存分配，虚拟地址到物理地址的转换，与外部内存的集成。
+系统提供per-process的虚拟地址空间，支持多种内存类型（standard, secure, cached），与IOMMU共同作用与地址转换和内存保护。
+## Core Data Structures
+内存管理子系统由多个重要的结构体构建，用于跟踪内存分配，管理虚拟地址空间，与IOMMU硬件交互。
+### Memory Entry Structure
+结构体kgsl_mem_entry代表GPU内存分配的基础单元。每个对用户态或内核态可见的分配都是以memory entry方式封装来跟踪生命周期，应用计数，和映射状态。
+### Process Private Structure
+使用GPU的每个进程都有一个kgsl_process_private结构体，用于维护per-process状态，包括内存分配和进程页表。
+## Memory Entry Lifecycle
+Memory entry遵循定义好的生命周期，从分配，创建，attach到一个进程，mapping，usage，最后destruction。
+### Memory Entry Creation and Attachment
+Memory entries通过以下几个路径创建：direct allocation，DMA-BUF import，或user memory mapping。attach的进程赋予GPU地址并向该进程注册entry。
+### Reference Counting
+Memory entry使用reference counting来管理它们的生命周期。初始的refcount为2：一个用于内核，一个用于用户态。在GPU操作期间增加引用计数。
+- Initial refcount = 2：kernel ref + userspace ref
+- kgsl_mem_entry_get()：增加引用计数
+- kgsl_mem_ebtry_put()：减少引用计数
+- kgsl_mem_entry_put_deferred()：在workqueue中销毁
+## IOMMU Architecture
+KGSL驱动使用SMMU来提供per-process虚拟地址空间和内存保护。IOMMU架构支持与不同security和isolation properties之间多个context。
+### IOMMU context Structure
+### IOMMU Contexts and Domains
+KGSL驱动管理三种类型的IOMMU context, 每个context都有各自的domain和context bank：
+### Context Bank Register Access
+IOMMU驱动通过内存映射的IO来访问context bank寄存器。寄存器偏移的计算考虑了context bank号以及page size。
+## Pagetable Management
+每个使用GPU的进程都有自己独立的pagetable，提供独立的虚拟地址空间。KGSL驱动支持传统的IOMMU domain和IO页表用于地址转换。
+### Pagetable Structure
+### Pagetable Operations
+pagetable实现了一组用于mapping和unmapping内存的操作。KGSL驱动支持多种页表操作的实现：
+key operations:
+- mmu_map: 将内存映射到GPU虚拟地址中
+- mmu_unmap：取消GPU虚拟地址映射
+- mmu_get_gpuaddr：分配GPU虚拟地址
+- mmu_put_gpuaddr：释放GPU虚拟地址
+### IO Page Table Implementation
+对于GPU的IOPAGETABLE特性，KGSL使用IO page table而不是使用IOMMU domain。这提供了更精细化的page table控制，使用TTBR0/TTBR1分隔地址空间。
+## Address Space Layout
+KGSL驱动可以管理不同目的和安全属性的多个虚拟地址空间。地址空间的layout依赖GPU是32bit还是64bit。
+### Global Memory Allocation
+全局内存被映射到所有页表，用于共享资源如memstore，scratch memory和firmware buffer。驱动维护一个bitmap用于跟踪全局内存的分配。
+## Memory Allocation and Tracking
+内存分配以per-process方式被跟踪，对每个内存类型有详细的统计信息。系统支持多个分配源，包括内核分配，用户内存，导入DMA-BUF handle。
+### Memory Types
+KGSL驱动对内存分配分类用于统计和调试：
+### Memory Statistics
+per-process统计跟踪每个类型的当前和peak内存使用：
+statistic update:
+- Add：atomic64_add(size, &stats[type].cur) on allocation
+- Subtract：atomic64_sub(size, &stats[type].cur) on free
+- Global tracking: KGSL_STATS_ADD()
+### Memory Allocation Flow
+## DMA-BUF Integration
+KGSL驱动支持通过DMA-BUF框架从外部导入内存。它允许在GPU和其他设备（如camera, video encoder, display）之间共享内存。
+### DMA-BUF Import Flow
+### DMA-BUF Metadata
+驱动为每个导入的DMA-BUF维护了metadata，用于跟踪attachment和cleanup：
+### DMA-BUF Duplicate Detection
+当相同buffer被导入多次时，在第一次检测到物理地址时驱动跟踪导入的DMA-BUF。这防止在内存统计中多次计算。
+## Secure Memory Management
